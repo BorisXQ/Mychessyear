@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#19170f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Шахматный год · 1100 часов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#19170f; --panel:#221f17; --panel-2:#2a2619; --line:#3a3526;
+    --ivory:#ECE4D2; --ivory-dim:#A9A08C; --wood:#7A4B2B; --wood-dim:#5A3A22;
+    --gold:#C9A227; --gold-dim:#8C7320; --felt:#46684F; --felt-bright:#5C8A66;
+    --emerald:#4FB35F; --empty:#33301F; --danger:#A35A4A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ivory);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:920px;margin:0 auto;padding:32px 20px 100px;}
+  h1,h2,h3{font-family:'Spectral',serif;font-weight:600;margin:0;}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+  header{margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:24px;}
+  header h1{font-size:30px;color:var(--ivory);}
+  header p{color:var(--ivory-dim);font-size:14px;margin-top:6px;}
+  .badge-row{display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .badge{font-size:11.5px;font-family:'JetBrains Mono',monospace;padding:5px 10px;border-radius:6px;border:1px solid var(--line);color:var(--ivory-dim);}
+  .badge.cloud{border-color:var(--felt);color:var(--felt-bright);}
+  .badge.local{border-color:var(--gold-dim);color:var(--gold);}
+  .toolbtn{background:var(--panel-2);border:1px solid var(--line);color:var(--ivory);border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:border-color .2s;}
+  .toolbtn:hover{border-color:var(--gold-dim);}
+  .toolbtn.active{border-color:var(--felt-bright);color:var(--felt-bright);}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:24px 0;}
+  .stat{background:var(--panel);padding:16px 18px;}
+  .stat .label{font-size:11px;color:var(--ivory-dim);text-transform:uppercase;letter-spacing:.06em;}
+  .stat .value{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:var(--ivory);margin-top:6px;}
+  .stat .value small{font-size:13px;color:var(--ivory-dim);font-weight:500;}
+
+  .goalbar{margin-bottom:32px;}
+  .goalbar .row{display:flex;justify-content:space-between;font-size:13px;color:var(--ivory-dim);margin-bottom:8px;}
+  .goalbar .row b{color:var(--gold);font-family:'JetBrains Mono',monospace;}
+  .track{height:10px;background:var(--empty);border-radius:6px;overflow:hidden;border:1px solid var(--line);}
+  .fill{height:100%;background:linear-gradient(90deg,var(--wood),var(--gold));border-radius:6px 0 0 6px;transition:width .4s;}
+
+  section{margin-bottom:32px;}
+  .sec-title{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .sec-title .icon{color:var(--gold);font-size:18px;}
+  .sec-title h2{font-size:17px;color:var(--ivory);}
+
+  .achv-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;}
+  .achv{flex:0 0 auto;width:128px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;opacity:.4;filter:grayscale(1);transition:opacity .3s,filter .3s;}
+  .achv.unlocked{opacity:1;filter:none;border-color:var(--gold-dim);background:var(--panel-2);}
+  .achv .glyph{font-size:22px;color:var(--gold);margin-bottom:6px;display:block;}
+  .achv .name{font-size:11.5px;font-weight:500;color:var(--ivory);line-height:1.3;}
+  .achv .desc{font-size:10.5px;color:var(--ivory-dim);margin-top:3px;line-height:1.3;}
+
+  /* CALENDAR */
+  .heatwrap{overflow-x:auto;padding-bottom:8px;position:relative;}
+  .heatgrid{display:grid;grid-auto-flow:column;grid-template-rows:14px repeat(7,15px);gap:3px;width:max-content;}
+  .mlabel{font-size:10px;color:var(--ivory-dim);font-family:'JetBrains Mono',monospace;grid-row:1;align-self:end;padding-bottom:2px;}
+  .cell{display:inline-block;width:15px;height:15px;border-radius:3px;cursor:pointer;position:relative;transition:transform .1s;vertical-align:middle;}
+  .cell:not(.future):hover{transform:scale(1.4);z-index:2;}
+  .cell.future{cursor:default;opacity:.4;}
+  .cell.today{outline:1.5px solid var(--gold);outline-offset:1px;}
+  .legend{display:flex;align-items:center;gap:14px;margin-top:12px;font-size:11px;color:var(--ivory-dim);flex-wrap:wrap;}
+  .legend .swatch{display:flex;align-items:center;gap:6px;}
+  .legend .cell{cursor:default;width:12px;height:12px;}
+  .legend .cell:hover{transform:none;}
+
+  #calTooltip{position:fixed;background:var(--panel-2);color:var(--ivory);font-size:12px;padding:6px 10px;border-radius:7px;border:1px solid var(--line);pointer-events:none;z-index:50;white-space:nowrap;opacity:0;transition:opacity .15s;box-shadow:0 4px 14px rgba(0,0,0,.5);}
+
+  /* Day popup */
+  .day-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;}
+  .day-popup{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px;min-width:320px;max-width:90vw;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+  .day-popup h3{font-size:17px;margin-bottom:4px;}
+  .day-popup .popup-sub{font-size:12px;color:var(--ivory-dim);margin-bottom:16px;}
+  .day-popup .popup-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line);}
+  .day-popup .popup-row:last-of-type{border:none;}
+  .day-popup .popup-row .lbl{color:var(--ivory-dim);}
+  .day-popup .popup-row .val{font-family:'JetBrains Mono',monospace;color:var(--ivory);}
+  .day-popup .popup-total{display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--gold-dim);font-size:14px;}
+  .day-popup .popup-total .val{font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:16px;}
+  .day-popup .popup-btns{display:flex;gap:8px;margin-top:16px;}
+  .day-popup .popup-btns button{flex:1;padding:9px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .popup-edit{background:var(--felt);border:1px solid var(--felt-bright);color:var(--ivory);}
+  .popup-edit:hover{background:var(--felt-bright);}
+  .popup-close{background:var(--panel-2);border:1px solid var(--line);color:var(--ivory-dim);}
+  .popup-close:hover{border-color:var(--gold-dim);}
+
+  .editor{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;}
+  .editor-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  .editor-head h3{font-size:18px;color:var(--ivory);}
+  .nav-btns{display:flex;gap:6px;}
+  .nav-btns button{background:var(--panel-2);border:1px solid var(--line);color:var(--ivory);border-radius:7px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .nav-btns button:hover{border-color:var(--gold-dim);}
+
+  .task{display:grid;grid-template-columns:26px 1fr 110px;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);}
+  .task:last-of-type{border-bottom:none;}
+  .task .chk{width:20px;height:20px;cursor:pointer;accent-color:var(--felt-bright);}
+  .task .info b{display:block;font-size:14px;color:var(--ivory);}
+  .task .info span{display:block;font-size:11.5px;color:var(--ivory-dim);margin-top:2px;}
+  .task input[type=number]{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ivory);border-radius:7px;padding:7px 8px;font-family:'JetBrains Mono',monospace;font-size:13px;text-align:right;}
+  .task input[type=number]:focus{outline:none;border-color:var(--gold-dim);}
+  .unit{font-size:11px;color:var(--ivory-dim);margin-left:4px;}
+
+  .daytotal{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px;}
+  .daytotal .num{font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--gold);font-weight:600;}
+  .savemsg{font-size:12px;color:var(--felt-bright);opacity:0;transition:opacity .3s;}
+  .savemsg.show{opacity:1;}
+  .savemsg.err{color:var(--danger);}
+
+  .loading{text-align:center;padding:60px 0;color:var(--ivory-dim);font-family:'JetBrains Mono',monospace;font-size:13px;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel-2);border:1px solid var(--gold-dim);border-radius:10px;padding:14px 20px;display:flex;align-items:center;gap:12px;opacity:0;transition:opacity .3s,transform .3s;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90vw;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast .glyph{font-size:24px;color:var(--gold);}
+  .toast b{display:block;font-size:13px;color:var(--ivory);}
+  .toast span{font-size:11.5px;color:var(--ivory-dim);}
+
+  #importInput{display:none;}
+
+  /* GAMIFICATION */
+  .levelhud{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:16px;}
+  .levelhud .rank-icon{font-size:30px;color:var(--gold);width:42px;text-align:center;flex:0 0 auto;}
+  .levelhud .lvl-main{flex:1;min-width:0;}
+  .levelhud .lvl-top{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ivory-dim);margin-bottom:6px;}
+  .levelhud .lvl-top b{color:var(--ivory);font-family:'JetBrains Mono',monospace;}
+  .xptrack{height:8px;background:var(--empty);border-radius:5px;overflow:hidden;border:1px solid var(--line);}
+  .xpfill{height:100%;background:linear-gradient(90deg,var(--felt),var(--emerald));border-radius:5px;transition:width .5s cubic-bezier(.2,.8,.3,1);}
+  .combo-pill{font-size:11px;font-family:'JetBrains Mono',monospace;background:var(--panel-2);border:1px solid var(--gold-dim);color:var(--gold);padding:5px 10px;border-radius:20px;white-space:nowrap;flex:0 0 auto;}
+  .shield-pill{font-size:11px;font-family:'JetBrains Mono',monospace;background:var(--panel-2);border:1px solid #4a7ab5;color:#7ab3f0;padding:5px 10px;border-radius:20px;white-space:nowrap;flex:0 0 auto;cursor:pointer;transition:background .2s;}
+  .shield-pill:hover{background:#1a2a3a;}
+  .mute-btn{width:34px;padding:6px 0;text-align:center;}
+
+  .risk-banner{display:flex;align-items:center;gap:12px;background:var(--panel-2);border:1px solid var(--gold-dim);border-radius:10px;padding:12px 16px;margin-bottom:18px;animation:riskPulse 2.4s infinite;}
+  .risk-banner .flame{font-size:22px;flex:0 0 auto;}
+  .risk-banner b{color:var(--gold);}
+  @keyframes riskPulse{0%,100%{box-shadow:0 0 0 rgba(201,162,39,0);}50%{box-shadow:0 0 16px rgba(201,162,39,.35);}}
+
+  .xp-float{position:fixed;transform:translate(-50%,0);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--gold);pointer-events:none;z-index:65;animation:xpFloat .9s ease-out forwards;}
+  .xp-float.crit{color:var(--emerald);font-size:16px;}
+  @keyframes xpFloat{0%{opacity:0;transform:translate(-50%,0) scale(.8);}15%{opacity:1;transform:translate(-50%,-14px) scale(1.1);}100%{opacity:0;transform:translate(-50%,-62px) scale(1);}}
+
+  .confetti-piece{position:fixed;border-radius:2px;pointer-events:none;z-index:64;animation:confettiBurst .85s ease-out forwards;}
+  @keyframes confettiBurst{0%{opacity:1;transform:translate(0,0) rotate(0deg);}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(220deg);}}
+
+  .levelup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:170;display:flex;align-items:center;justify-content:center;}
+  .levelup-card{background:linear-gradient(160deg,var(--panel-2),var(--panel));border:1px solid var(--gold);border-radius:18px;padding:34px 40px;text-align:center;box-shadow:0 0 60px rgba(201,162,39,.35),0 20px 50px rgba(0,0,0,.6);animation:levelPop .45s cubic-bezier(.34,1.56,.64,1);}
+  .levelup-card .lvl-icon{font-size:50px;color:var(--gold);display:block;margin-bottom:8px;}
+  .levelup-card h2{font-size:27px;color:var(--ivory);margin-bottom:4px;}
+  .levelup-card .lvl-rank{font-size:14px;color:var(--gold);margin-bottom:20px;letter-spacing:.04em;text-transform:uppercase;}
+  .levelup-card button{background:var(--felt);border:1px solid var(--felt-bright);color:var(--ivory);padding:10px 24px;border-radius:9px;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;}
+  .levelup-card button:hover{background:var(--felt-bright);}
+  @keyframes levelPop{0%{transform:scale(.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+  /* ── BOSS FIGHT ── */
+  .boss-section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:32px;}
+  .boss-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .boss-avatar{font-size:36px;width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:var(--panel-2);border-radius:50%;border:2px solid var(--danger);flex-shrink:0;}
+  .boss-info h3{font-size:16px;color:var(--ivory);margin-bottom:2px;}
+  .boss-info .boss-rating{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--danger);letter-spacing:.08em;}
+  .boss-hp-label{display:flex;justify-content:space-between;font-size:11px;color:var(--ivory-dim);margin-bottom:6px;}
+  .boss-hp-track{height:14px;background:var(--empty);border-radius:7px;overflow:hidden;border:1px solid var(--line);position:relative;}
+  .boss-hp-fill{height:100%;border-radius:7px;transition:width .6s cubic-bezier(.2,.8,.3,1);background:linear-gradient(90deg,#8B1A1A,var(--danger));}
+  .boss-status{font-size:12px;color:var(--ivory-dim);margin-top:8px;}
+  .boss-dead{text-align:center;padding:10px;animation:bossVictory 1s ease-out;}
+  @keyframes bossVictory{0%{transform:scale(.8);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+  /* ── CHESS BOARD PROGRESS ── */
+  .board-progress{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;max-width:320px;}
+  .board-cell{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;transition:transform .15s;position:relative;}
+  .board-cell:hover{transform:scale(1.1);z-index:2;}
+  .board-cell.light-sq{background:#3a3526;}
+  .board-cell.dark-sq{background:#2a2619;}
+  .board-cell.filled-base{background:var(--wood-dim);}
+  .board-cell.filled-mid{background:var(--felt);}
+  .board-cell.filled-great{background:var(--felt-bright);}
+  .board-cell.filled-epic{background:var(--gold);}
+  .board-cell.current-week{outline:2px solid var(--gold);outline-offset:1px;}
+  .board-tooltip{position:fixed;background:var(--panel-2);color:var(--ivory);font-size:11px;padding:5px 9px;border-radius:6px;border:1px solid var(--line);pointer-events:none;z-index:50;opacity:0;transition:opacity .15s;white-space:nowrap;}
+
+  /* ── CHARTS ── */
+  .chart-container{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px;}
+  .chart-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .chart-tab{padding:6px 14px;border-radius:20px;border:1px solid var(--line);background:var(--panel-2);color:var(--ivory-dim);font-size:12px;cursor:pointer;transition:all .2s;}
+  .chart-tab.active{background:var(--gold);border-color:var(--gold);color:#19170f;font-weight:600;}
+  .forecast-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:14px;}
+  .forecast-card{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+  .forecast-card .fc-label{font-size:11px;color:var(--ivory-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .forecast-card .fc-value{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--gold);font-weight:600;}
+  .forecast-card .fc-sub{font-size:11px;color:var(--ivory-dim);margin-top:2px;}
+
+  /* ── DAILY CHALLENGE ── */
+  .daily-challenge{background:var(--panel-2);border:1px solid var(--gold-dim);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;}
+  .daily-challenge .dc-icon{font-size:28px;flex-shrink:0;}
+  .daily-challenge .dc-body{flex:1;}
+  .daily-challenge .dc-label{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;font-family:'JetBrains Mono',monospace;}
+  .daily-challenge .dc-text{font-size:14px;color:var(--ivory);margin-top:2px;}
+  .daily-challenge .dc-bonus{font-size:11px;color:var(--emerald);margin-top:3px;}
+  .dc-done-btn{padding:7px 14px;border-radius:7px;background:var(--felt);border:1px solid var(--felt-bright);color:var(--ivory);font-size:12px;cursor:pointer;white-space:nowrap;}
+  .dc-done-btn:disabled{opacity:.4;cursor:default;}
+
+  /* ── AI COACH ── */
+  .ai-coach-popup{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:160;display:flex;align-items:flex-end;justify-content:center;}
+  .ai-coach-card{background:var(--panel);border:1px solid var(--gold-dim);border-radius:18px 18px 0 0;padding:24px 24px 36px;max-width:600px;width:100%;max-height:70vh;overflow-y:auto;animation:slideUp .3s ease-out;}
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .ai-coach-card h3{font-size:18px;color:var(--gold);margin-bottom:12px;}
+  .ai-coach-card .coach-text{font-size:14px;color:var(--ivory);line-height:1.7;white-space:pre-wrap;}
+  .ai-coach-card .coach-loading{color:var(--ivory-dim);font-size:13px;font-family:'JetBrains Mono',monospace;}
+  .ai-coach-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--ivory-dim);font-size:22px;cursor:pointer;}
+
+  /* ── PHOENIX / COMEBACK ── */
+  @keyframes phoenixFlash{0%{opacity:0;}20%{opacity:.6;}100%{opacity:0;}}
+  .phoenix-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#ff6a00,#ee0979);pointer-events:none;z-index:150;opacity:0;animation:phoenixFlash 1.5s ease-out forwards;}
+
+  /* ── SHIELD ANIMATION ── */
+  @keyframes shieldAbsorb{0%{transform:scale(1);}30%{transform:scale(1.3);}60%{transform:scale(0.9);}100%{transform:scale(1);}}
+  .shield-anim{animation:shieldAbsorb .6s ease-out;}
+
+  /* ── BREAKTHROUGH PIECE ── */
+  .breakthrough-piece{position:fixed;font-size:48px;pointer-events:none;z-index:160;animation:breakthroughMove 1.4s cubic-bezier(.25,.46,.45,.94) forwards;}
+  @keyframes breakthroughMove{
+    0%{left:10%;top:80%;opacity:0;transform:scale(0.5) rotate(0deg);}
+    30%{opacity:1;transform:scale(1.2) rotate(-15deg);}
+    60%{left:50%;top:40%;transform:scale(1.1) rotate(10deg);}
+    100%{left:50%;top:45%;opacity:0;transform:scale(2) rotate(0deg);}
+  }
+
+  /* ── PWA INSTALL BANNER ── */
+  .install-banner{display:none;background:var(--panel-2);border:1px solid var(--felt);border-radius:10px;padding:12px 16px;margin-bottom:16px;align-items:center;gap:12px;}
+  .install-banner.show{display:flex;}
+  .install-banner button{padding:6px 14px;background:var(--felt);border:1px solid var(--felt-bright);color:var(--ivory);border-radius:7px;font-size:12px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading" id="loading">загрузка плана…</div>
+</div>
+<div class="toast" id="toast"></div>
+<div id="calTooltip"></div>
+<div id="boardTooltip" class="board-tooltip"></div>
+<input type="file" id="importInput" accept="application/json">
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ─── SERVICE WORKER для PUSH уведомлений ────────────────────────────────────
+if('serviceWorker' in navigator){
+  const swCode = `
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+self.addEventListener('push', e => {
+  const d = e.data ? e.data.json() : {title:'Шахматный год', body:'Время тренироваться!'};
+  e.waitUntil(self.registration.showNotification(d.title, {
+    body: d.body, icon: d.icon||'', badge: d.badge||'',
+    vibrate: [200,100,200], tag: d.tag||'chess'
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({type:'window'}).then(cs => {
+    for(const c of cs) if(c.focus) return c.focus();
+    if(clients.openWindow) return clients.openWindow('/');
+  }));
+});
+`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(()=>{});
+}
+
+// ─── SUPABASE CONFIG ─────────────────────────────────────────────────────────
+const SUPABASE_URL      = 'https://qgjskrtpnyjwfjgzuefo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnanNrcnRwbnlqd2ZqZ3p1ZWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMTE1ODAsImV4cCI6MjA5NzY4NzU4MH0.ug-5n11l7BVCd-QRWsD5TW_rP0lClmoDaUPCF8eEiVE';
+const ROW_ID             = 'main';
+const LOCAL_KEY          = 'chess-year-plan-v3-local';
+const TOTAL_DAYS         = 365;
+const GOAL_HOURS         = 1100;
+const TARGET_MIN         = 252;
+const OVER_MIN           = 330;
+
+const PLAN = [
+  {key:'tactics',   glyph:'♟', name:'Тактика',              hint:'30–60 минут на упражнения',                type:'check'},
+  {key:'opening',   glyph:'♞', name:'Дебют',                hint:'20 минут разбора дебютного репертуара',    type:'check'},
+  {key:'games',     glyph:'♜', name:'Партии',               hint:'2–4 партии · 10 мин каждому = 20 мин/партию', type:'count'},
+  {key:'review',    glyph:'♝', name:'Разбор партий',        hint:'15–20 минут на каждую сыгранную партию',   type:'check'},
+  {key:'endgame',   glyph:'♛', name:'Эндшпиль',             hint:'30 минут (необязательно)',                 type:'check'},
+  {key:'broadcast', glyph:'♚', name:'Трансляции супертурниров', hint:'30–60 минут с комментариями',          type:'check'},
+  {key:'books',     glyph:'♔', name:'Книги по стратегии',   hint:'30–60 минут чтения',                       type:'check'},
+];
+
+const ACHIEVEMENTS = [
+  {id:'a1', glyph:'♙', name:'Первая пешка',    desc:'1-й день в плане',      check:s=>s.activeDays>=1},
+  {id:'a2', glyph:'♘', name:'Неделя в седле',  desc:'7 дней подряд',         check:s=>s.bestStreak>=7},
+  {id:'a3', glyph:'♗', name:'Месяц дисциплины',desc:'30 дней подряд',        check:s=>s.bestStreak>=30},
+  {id:'a4', glyph:'♖', name:'Квартал',         desc:'90 дней подряд',        check:s=>s.bestStreak>=90},
+  {id:'a5', glyph:'♕', name:'Полугодие',       desc:'180 дней подряд',       check:s=>s.bestStreak>=180},
+  {id:'a6', glyph:'♔', name:'Шахматный год',   desc:'365 дней подряд',       check:s=>s.bestStreak>=365},
+  {id:'a7', glyph:'🏆', name:'50 часов',        desc:'накоплено 50 ч',        check:s=>s.totalHours>=50},
+  {id:'a8', glyph:'🏆', name:'100 часов',       desc:'накоплено 100 ч',       check:s=>s.totalHours>=100},
+  {id:'a9', glyph:'🏆', name:'250 часов',       desc:'накоплено 250 ч',       check:s=>s.totalHours>=250},
+  {id:'a10',glyph:'🏆', name:'500 часов',       desc:'накоплено 500 ч',       check:s=>s.totalHours>=500},
+  {id:'a11',glyph:'🏆', name:'750 часов',       desc:'накоплено 750 ч',       check:s=>s.totalHours>=750},
+  {id:'a12',glyph:'🏆', name:'1000 часов',      desc:'накоплено 1000 ч',      check:s=>s.totalHours>=1000},
+  {id:'a13',glyph:'👑', name:'Цель года',       desc:'1100 часов достигнуто', check:s=>s.totalHours>=GOAL_HOURS},
+  {id:'a14',glyph:'⚔', name:'100 партий',      desc:'сыграно 100 партий',    check:s=>s.games>=100},
+  {id:'a15',glyph:'⚔', name:'250 партий',      desc:'сыграно 250 партий',    check:s=>s.games>=250},
+  {id:'a16',glyph:'⚔', name:'500 партий',      desc:'сыграно 500 партий',    check:s=>s.games>=500},
+  {id:'a17',glyph:'📖', name:'Книжный червь',   desc:'50 сессий чтения',      check:s=>s.bookSessions>=50},
+  {id:'a18',glyph:'📺', name:'Зритель турниров',desc:'50 просмотров',         check:s=>s.broadcastSessions>=50},
+];
+
+const RANKS = [
+  {minLevel:1,  icon:'♙', title:'Пешка'},
+  {minLevel:5,  icon:'♘', title:'Конь'},
+  {minLevel:10, icon:'♗', title:'Слон'},
+  {minLevel:15, icon:'♖', title:'Ладья'},
+  {minLevel:20, icon:'♕', title:'Дама'},
+  {minLevel:25, icon:'♔', title:'Король'},
+  {minLevel:30, icon:'👑', title:'Гроссмейстер'},
+];
+
+// ─── WEEKLY BOSSES ───────────────────────────────────────────────────────────
+const BOSSES = [
+  {name:'Анна Бекерс',   rating:1350, icon:'👩‍💼', flavor:'Агрессивный дебютник'},
+  {name:'Ван Йу',        rating:1480, icon:'🧑‍💻', flavor:'Мастер эндшпиля'},
+  {name:'Карлос Монтес', rating:1540, icon:'👨‍🎓', flavor:'Позиционный игрок'},
+  {name:'Лена Штауффер', rating:1620, icon:'👩‍🔬', flavor:'Тактический гений'},
+  {name:'Марко Россини', rating:1700, icon:'🧔', flavor:'Дебютный теоретик'},
+  {name:'Прия Нагар',    rating:1780, icon:'👩‍🏫', flavor:'CM-кандидат'},
+  {name:'Дитер Хаас',    rating:1850, icon:'👴', flavor:'Опытный ветеран'},
+  {name:'Сэй-Хён Ли',   rating:1900, icon:'🧑‍🎯', flavor:'Региональный чемпион'},
+];
+
+// ─── DAILY CHALLENGES ────────────────────────────────────────────────────────
+const CHALLENGES = [
+  {icon:'⚡', text:'Реши 30 тактик за 20 минут', bonus:1.5},
+  {icon:'🎯', text:'Сыграй 3 партии с незнакомцем', bonus:1.5},
+  {icon:'📖', text:'Изучи один дебютный вариант от А до Z', bonus:1.5},
+  {icon:'♟', text:'Проведи партию без камбэка — только позиция', bonus:1.5},
+  {icon:'🏃', text:'4 часа тренировки за один день', bonus:2.0},
+  {icon:'🔍', text:'Разбери 5 своих партий с движком', bonus:1.5},
+  {icon:'♛', text:'Сыграй только эндшпили (партии 40+ ходов)', bonus:1.5},
+  {icon:'🧠', text:'Час теории дебюта без отвлечений', bonus:1.5},
+  {icon:'⏱', text:'Блиц-марафон: 10 партий за час', bonus:1.8},
+  {icon:'📺', text:'Посмотри трансляцию с комментарием GM', bonus:1.3},
+  {icon:'🎲', text:'Сыграй с нестандартного дебюта', bonus:1.4},
+  {icon:'💪', text:'Полный план дня — все 7 задач', bonus:2.0},
+];
+
+function getDailyChallenge(){
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / 86400000);
+  return CHALLENGES[dayOfYear % CHALLENGES.length];
+}
+
+function getWeekBoss(){
+  const now = new Date();
+  const weekOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / (86400000*7));
+  return BOSSES[weekOfYear % BOSSES.length];
+}
+
+function getWeekKey(){
+  const now = new Date();
+  const weekOfYear = Math.floor((now - new Date(now.getFullYear(),0,0)) / (86400000*7));
+  return `${now.getFullYear()}-w${weekOfYear}`;
+}
+
+// ─── ЗВУК ────────────────────────────────────────────────────────────────────
+let audioCtx=null;
+function ensureAudio(){
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  return audioCtx;
+}
+function playTone(freq,dur,type,vol,delay){
+  if(!state.soundOn) return;
+  const ctx = ensureAudio(); if(!ctx) return;
+  const t0 = ctx.currentTime+(delay||0);
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = type||'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(vol||0.05, t0+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function playDing(){ playTone(880,0.1,'sine',0.06,0); playTone(1320,0.12,'sine',0.04,0.04); }
+function playCrit(){ playTone(660,0.08,'triangle',0.06,0); playTone(990,0.08,'triangle',0.05,0.05); playTone(1320,0.14,'triangle',0.05,0.1); }
+function playComplete(){ playTone(523,0.1,'sine',0.06,0); playTone(659,0.1,'sine',0.06,0.08); playTone(784,0.18,'sine',0.07,0.16); }
+function playLevelUp(){ [660,880,1100,1320].forEach((f,i)=>playTone(f,0.18,'triangle',0.06,i*0.09)); }
+function playBossKill(){ [440,550,660,880,1100].forEach((f,i)=>playTone(f,0.22,'triangle',0.07,i*0.07)); }
+function playShield(){ playTone(440,0.15,'sine',0.07,0); playTone(660,0.2,'sine',0.06,0.08); }
+function playPhoenix(){ [330,440,550,660,880,1100,880,660].forEach((f,i)=>playTone(f,0.15,'triangle',0.05,i*0.06)); }
+
+// ─── ВИЗУАЛЬНЫЕ ЭФФЕКТЫ ──────────────────────────────────────────────────────
+function spawnFloatingXP(el, text, cls){
+  if(!el) return;
+  const r = el.getBoundingClientRect();
+  const f = document.createElement('div');
+  f.className = 'xp-float '+(cls||'');
+  f.textContent = text;
+  f.style.left = (r.left + r.width/2)+'px';
+  f.style.top  = r.top+'px';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(), 1100);
+}
+function spawnConfetti(el, count, big){
+  const r = el ? el.getBoundingClientRect() : {left:window.innerWidth/2,top:window.innerHeight/3,width:0,height:0};
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const colors = ['var(--gold)','var(--felt-bright)','var(--emerald)','var(--ivory)','#ff6a00','#ee0979'];
+  for(let i=0;i<count;i++){
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    const angle = Math.random()*Math.PI*2;
+    const dist  = (big?120:50) + Math.random()*(big?100:50);
+    const dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist - (big?60:20);
+    p.style.left = cx+'px'; p.style.top = cy+'px';
+    p.style.background = colors[i%colors.length];
+    p.style.setProperty('--dx', dx+'px');
+    p.style.setProperty('--dy', dy+'px');
+    const size = big ? (5+Math.random()*5) : (3+Math.random()*3);
+    p.style.width = p.style.height = size+'px';
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(), 900);
+  }
+}
+function showLevelUp(level){
+  const rank = getRank(level);
+  const overlay = document.createElement('div');
+  overlay.className = 'levelup-overlay';
+  overlay.innerHTML = `<div class="levelup-card">
+    <span class="lvl-icon">${rank.icon}</span>
+    <h2>Уровень ${level}!</h2>
+    <div class="lvl-rank">${rank.title}</div>
+    <button id="lvlClose">Вперёд ♟</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  spawnConfetti(null, 60, true);
+  playLevelUp();
+  overlay.querySelector('#lvlClose').onclick = ()=>overlay.remove();
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+}
+function showBreakthroughPiece(){
+  const pieces = ['♟','♞','♝','♜','♛','♔'];
+  const p = document.createElement('div');
+  p.className = 'breakthrough-piece';
+  p.textContent = pieces[Math.floor(Math.random()*pieces.length)];
+  p.style.left = (10+Math.random()*20)+'%';
+  document.body.appendChild(p);
+  setTimeout(()=>{ spawnConfetti(null, 80, true); p.remove(); }, 1400);
+}
+function showPhoenixFlash(){
+  const el = document.createElement('div');
+  el.className = 'phoenix-overlay';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1600);
+  playPhoenix();
+}
+function showShieldAbsorb(){
+  const pill = document.querySelector('.shield-pill');
+  if(pill){ pill.classList.add('shield-anim'); setTimeout(()=>pill.classList.remove('shield-anim'),700); }
+  playShield();
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = { startDate:null, days:{}, unlocked:[], xp:0, bestDayMinutes:0, soundOn:true, shields:0, lastShieldEarned:0, pushEnabled:false, challengeDoneToday:false, challengeDoneDate:'' };
+let selectedDate = null;
+let sb = null;
+let sbReady = false;
+let sbLastError = null;
+let deferredInstallPrompt = null;
+let charts = {};
+
+// ─── DATE HELPERS ─────────────────────────────────────────────────────────────
+function startOfDay(d){const x=new Date(d);x.setHours(0,0,0,0);return x;}
+function fmt(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),da=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${da}`;}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function parseDate(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+const MONTHS_RU=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+const MONTHS_FULL=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const WD_RU=['пн','вт','ср','чт','пт','сб','нд'];
+function fmtRu(d){return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}`;}
+function fmtHours(m){ return (m/60).toFixed(1).replace('.0',''); }
+
+function emptyDay(){
+  return {tactics:{done:false,min:0},opening:{done:false,min:0},games:{done:false,count:0},
+          review:{done:false,min:0},endgame:{done:false,min:0},
+          broadcast:{done:false,min:0},books:{done:false,min:0}};
+}
+function dayMinutes(d){
+  if(!d) return 0;
+  return (d.tactics.min||0)+(d.opening.min||0)+((d.games.count||0)*20)+
+         (d.review.min||0)+(d.endgame.min||0)+(d.broadcast.min||0)+(d.books.min||0);
+}
+function dayComplete(d){
+  if(!d) return false;
+  return d.tactics.done && d.opening.done && (d.games.count||0)>=2 && d.review.done &&
+         (d.broadcast.done || d.books.done);
+}
+function colorForMinutes(m){
+  if(m<=0) return 'var(--empty)';
+  if(m<90)  return 'var(--wood-dim)';
+  if(m<180) return 'var(--wood)';
+  if(m<TARGET_MIN) return 'var(--felt)';
+  if(m<OVER_MIN)    return 'var(--felt-bright)';
+  return 'var(--emerald)';
+}
+
+// ─── RANKS ───────────────────────────────────────────────────────────────────
+function getRank(level){ let r=RANKS[0]; for(const x of RANKS){ if(level>=x.minLevel) r=x; } return r; }
+function xpForLevel(level){ return Math.round(120*Math.pow(level,1.5)); }
+function levelInfo(xp){
+  let level=1, spent=0;
+  for(let guard=0; guard<500; guard++){
+    const need = xpForLevel(level);
+    if(xp < spent+need) return {level, into:Math.round(xp-spent), span:need};
+    spent += need; level++;
+  }
+  return {level, into:0, span:xpForLevel(level)};
+}
+function comboMultiplier(streak){ return Math.min(1 + (streak||0)*0.01, 1.3); }
+
+// ─── SUPABASE ────────────────────────────────────────────────────────────────
+function initSupabase(){
+  try{ if(!window.supabase) return false; sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); return true; }catch(e){ sbLastError=e.message; return false; }
+}
+async function sbLoad(){
+  if(!sb) return null;
+  try{ const {data,error}=await sb.from('chess_plan').select('data').eq('id',ROW_ID).maybeSingle(); if(error){sbLastError=error.message;return null;} sbReady=true; return data?data.data:null; }catch(e){sbLastError=e.message;return null;}
+}
+async function sbSave(payload){
+  if(!sb) return false;
+  try{ const {error}=await sb.from('chess_plan').upsert({id:ROW_ID,data:payload,updated_at:new Date().toISOString()}); if(error){sbLastError=error.message;return false;} sbReady=true; return true; }catch(e){sbLastError=e.message;return false;}
+}
+async function loadState(){
+  initSupabase();
+  let remote=null;
+  if(sb) remote=await sbLoad();
+  if(remote&&remote.startDate){ state=remote; }
+  else{ try{ const raw=localStorage.getItem(LOCAL_KEY); if(raw) state=JSON.parse(raw); }catch(e){} }
+  if(!state.startDate){ state.startDate=fmt(startOfDay(new Date())); state.days={}; state.unlocked=[]; }
+  state.unlocked=state.unlocked||[];
+  state.days=state.days||{};
+  state.xp=state.xp||0;
+  state.bestDayMinutes=state.bestDayMinutes||0;
+  if(state.soundOn===undefined) state.soundOn=true;
+  state.shields=state.shields||0;
+  state.lastShieldEarned=state.lastShieldEarned||0;
+  state.pushEnabled=state.pushEnabled||false;
+  state.challengeDoneToday=state.challengeDoneToday||false;
+  state.challengeDoneDate=state.challengeDoneDate||'';
+  await persist();
+}
+async function persist(){
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(state)); }catch(e){}
+  if(sb) return await sbSave(state);
+  return true;
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+function computeStats(){
+  const START=parseDate(state.startDate);
+  let totalMin=0, games=0, activeDays=0, bookSessions=0, broadcastSessions=0;
+  const completeSet=new Set();
+  Object.keys(state.days).forEach(ds=>{
+    const d=state.days[ds]; const m=dayMinutes(d);
+    totalMin+=m; games+=d.games.count||0; if(m>0) activeDays++;
+    if(d.books&&d.books.done) bookSessions++;
+    if(d.broadcast&&d.broadcast.done) broadcastSessions++;
+    if(dayComplete(d)) completeSet.add(ds);
+  });
+  let bestStreak=0, run=0;
+  for(let i=0;i<TOTAL_DAYS;i++){ const ds=fmt(addDays(START,i)); if(completeSet.has(ds)){run++;bestStreak=Math.max(bestStreak,run);}else run=0; }
+  let currentStreak=0;
+  const today=startOfDay(new Date());
+  for(let i=TOTAL_DAYS-1;i>=0;i--){ const d=addDays(START,i); if(d>today) continue; const ds=fmt(d); if(completeSet.has(ds)) currentStreak++; else if(ds!==fmt(today)) break; }
+  return {totalMin, totalHours:totalMin/60, games, activeDays, bookSessions, broadcastSessions, bestStreak, currentStreak};
+}
+
+// ─── WEEKLY STATS ─────────────────────────────────────────────────────────────
+function computeWeeklyData(){
+  const START = parseDate(state.startDate);
+  const weeks = [];
+  for(let w=0; w<52; w++){
+    let wMin=0, tactics=0, opening=0, games=0, endgame=0, days=0;
+    for(let d=0; d<7; d++){
+      const ds = fmt(addDays(START, w*7+d));
+      const day = state.days[ds];
+      if(!day) continue;
+      const m = dayMinutes(day);
+      wMin += m; days++;
+      tactics  += day.tactics.min||0;
+      opening  += day.opening.min||0;
+      games    += (day.games.count||0)*20;
+      endgame  += day.endgame.min||0;
+    }
+    weeks.push({week:w+1, hours:wMin/60, tactics:tactics/60, opening:opening/60, games:games/60, endgame:endgame/60, days});
+  }
+  return weeks;
+}
+
+// ─── SHIELD: earn one every 14 days of streak ─────────────────────────────────
+function checkShieldEarn(stats){
+  const earned = Math.floor(stats.bestStreak / 14);
+  if(earned > (state.lastShieldEarned||0)){
+    const gained = earned - (state.lastShieldEarned||0);
+    state.shields = (state.shields||0) + gained;
+    state.lastShieldEarned = earned;
+    showToast({glyph:'🛡', name:`+${gained} щит${gained>1?'а':''}!`, desc:`Серия ${stats.bestStreak} дней — щит защитит от пропуска`});
+  }
+}
+
+async function useShield(stats){
+  if((state.shields||0) <= 0){ showToast({glyph:'❌', name:'Нет щитов', desc:'Набери серию 14 дней чтобы получить щит'}); return; }
+  const todayStr = fmt(startOfDay(new Date()));
+  if(!state.days[todayStr]) state.days[todayStr] = emptyDay();
+  // Mark as a minimal complete day via shield
+  state.days[todayStr]._shielded = true;
+  state.days[todayStr].tactics.done = true;
+  state.days[todayStr].opening.done = true;
+  state.days[todayStr].games.count = 2;
+  state.days[todayStr].review.done = true;
+  state.days[todayStr].broadcast.done = true;
+  state.shields = Math.max(0, (state.shields||0) - 1);
+  showShieldAbsorb();
+  await persist();
+  showToast({glyph:'🛡', name:'Щит активирован!', desc:`Серия сохранена. Щитов осталось: ${state.shields}`});
+  render();
+}
+
+// ─── PUSH NOTIFICATIONS ───────────────────────────────────────────────────────
+async function requestPushPermission(){
+  if(!('Notification' in window)){ alert('Ваш браузер не поддерживает уведомления'); return; }
+  const perm = await Notification.requestPermission();
+  if(perm === 'granted'){
+    state.pushEnabled = true;
+    await persist();
+    scheduleDailyNotifications();
+    showToast({glyph:'🔔', name:'Уведомления включены!', desc:'Получишь напоминание в 9:00 и если серия горит в 20:00'});
+    render();
+  } else {
+    showToast({glyph:'🔕', name:'Уведомления отклонены', desc:'Разреши уведомления в настройках браузера'});
+  }
+}
+
+function scheduleDailyNotifications(){
+  if(!state.pushEnabled || Notification.permission !== 'granted') return;
+  // Morning reminder at 9:00
+  const now = new Date();
+  const morning = new Date(); morning.setHours(9,0,0,0);
+  if(morning < now) morning.setDate(morning.getDate()+1);
+  const msToMorning = morning - now;
+  setTimeout(()=>{
+    new Notification('♟ Шахматный год', {body:'Доброе утро! Пора разминать мозг — открой план тренировки.',tag:'chess-morning'});
+    setInterval(()=> new Notification('♟ Шахматный год', {body:'Доброе утро! Пора разминать мозг.',tag:'chess-morning'}), 86400000);
+  }, msToMorning);
+
+  // Evening streak-risk at 20:00
+  const evening = new Date(); evening.setHours(20,0,0,0);
+  if(evening < now) evening.setDate(evening.getDate()+1);
+  const msToEvening = evening - now;
+  setTimeout(()=>{
+    checkEveningAlert();
+    setInterval(checkEveningAlert, 86400000);
+  }, msToEvening);
+}
+
+function checkEveningAlert(){
+  const stats = computeStats();
+  const todayStr = fmt(startOfDay(new Date()));
+  const todayDone = dayComplete(state.days[todayStr]);
+  if(stats.currentStreak > 0 && !todayDone && Notification.permission==='granted'){
+    new Notification(`🔥 Серия ${stats.currentStreak} дней горит!`, {
+      body:'До конца дня — закрой план тренировки чтобы не потерять серию!',
+      tag:'chess-evening', requireInteraction:true
+    });
+  }
+}
+
+function sendLevelUpNotification(level){
+  if(state.pushEnabled && Notification.permission==='granted'){
+    new Notification(`🏆 Уровень ${level}!`, {body:`Ты достиг нового уровня в Шахматном году! Продолжай!`, tag:'chess-levelup'});
+  }
+}
+
+// ─── PWA INSTALL ─────────────────────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBanner')?.classList.add('show');
+});
+
+async function installPWA(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const {outcome} = await deferredInstallPrompt.userChoice;
+  if(outcome==='accepted') document.getElementById('installBanner')?.classList.remove('show');
+  deferredInstallPrompt = null;
+}
+
+// ─── BOSS FIGHT ───────────────────────────────────────────────────────────────
+function getBossHP(){
+  const wk = getWeekKey();
+  const boss = getWeekBoss();
+  // Week plan: 7 complete days = boss dead. Current week complete days
+  const START = parseDate(state.startDate);
+  const now = new Date();
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay() + 1); weekStart.setHours(0,0,0,0);
+  let completedThisWeek = 0;
+  for(let d=0; d<7; d++){
+    const day = addDays(weekStart, d);
+    if(day > now) break;
+    const ds = fmt(day);
+    if(dayComplete(state.days[ds])) completedThisWeek++;
+  }
+  const maxHP = 7;
+  const hp = Math.max(0, maxHP - completedThisWeek);
+  return {hp, maxHP, pct: hp/maxHP*100, completedThisWeek, boss};
+}
+
+// ─── CHARTS ──────────────────────────────────────────────────────────────────
+let currentChartTab = 'weekly';
+let weeklyChart = null, typeChart = null;
+
+function buildCharts(){
+  const weeks = computeWeeklyData();
+  const stats = computeStats();
+  const container = document.getElementById('chartsContainer');
+  if(!container) return;
+
+  // Forecast
+  const daysElapsed = Object.keys(state.days).filter(ds => dayMinutes(state.days[ds])>0).length || 1;
+  const avgHoursPerDay = stats.totalHours / daysElapsed;
+  const remainingHours = Math.max(0, GOAL_HOURS - stats.totalHours);
+  const daysToGoal = avgHoursPerDay > 0 ? Math.ceil(remainingHours / avgHoursPerDay) : 999;
+  const goalDate = addDays(new Date(), daysToGoal);
+  const hoursPerWeek = avgHoursPerDay * 7;
+  const onTrack = hoursPerWeek >= (GOAL_HOURS / 52);
+
+  container.innerHTML = `
+    <div class="chart-tabs">
+      <button class="chart-tab ${currentChartTab==='weekly'?'active':''}" onclick="switchChart('weekly')">По неделям</button>
+      <button class="chart-tab ${currentChartTab==='type'?'active':''}" onclick="switchChart('type')">По типам</button>
+      <button class="chart-tab ${currentChartTab==='forecast'?'active':''}" onclick="switchChart('forecast')">Прогноз CM</button>
+    </div>
+    <div id="chartWeekly" style="display:${currentChartTab==='weekly'?'block':'none'}">
+      <canvas id="canvasWeekly" height="200"></canvas>
+    </div>
+    <div id="chartType" style="display:${currentChartTab==='type'?'block':'none'}">
+      <canvas id="canvasType" height="220"></canvas>
+    </div>
+    <div id="chartForecast" style="display:${currentChartTab==='forecast'?'block':'none'}">
+      <div class="forecast-cards">
+        <div class="forecast-card">
+          <div class="fc-label">Текущий темп</div>
+          <div class="fc-value">${avgHoursPerDay.toFixed(1)} ч/день</div>
+          <div class="fc-sub">${hoursPerWeek.toFixed(1)} ч/неделю</div>
+        </div>
+        <div class="forecast-card">
+          <div class="fc-label">До цели 1100 ч</div>
+          <div class="fc-value">${remainingHours.toFixed(0)} ч</div>
+          <div class="fc-sub">осталось набрать</div>
+        </div>
+        <div class="forecast-card">
+          <div class="fc-label">Прогноз: CM</div>
+          <div class="fc-value" style="color:${onTrack?'var(--emerald)':'var(--danger)'}">${daysToGoal < 900 ? fmtRu(goalDate) : 'нет данных'}</div>
+          <div class="fc-sub">${onTrack ? '✅ идёшь в темпе' : '⚠ нужно ускориться'}</div>
+        </div>
+        <div class="forecast-card">
+          <div class="fc-label">Нужно в день</div>
+          <div class="fc-value">${(GOAL_HOURS / TOTAL_DAYS).toFixed(1)} ч</div>
+          <div class="fc-sub">для точного попадания</div>
+        </div>
+      </div>
+      <canvas id="canvasForecast" height="200" style="margin-top:16px"></canvas>
+    </div>
+  `;
+
+  // Chart.js defaults
+  Chart.defaults.color = '#A9A08C';
+  Chart.defaults.borderColor = '#3a3526';
+  Chart.defaults.font.family = 'Inter, sans-serif';
+
+  // Weekly chart
+  const wLabels = weeks.filter(w=>w.hours>0).map(w=>`Нед ${w.week}`);
+  const wData   = weeks.filter(w=>w.hours>0).map(w=>+w.hours.toFixed(1));
+  if(weeklyChart) weeklyChart.destroy();
+  const ctxW = document.getElementById('canvasWeekly');
+  if(ctxW) weeklyChart = new Chart(ctxW, {
+    type:'line',
+    data:{
+      labels: wLabels,
+      datasets:[{
+        label:'Часов в неделю',
+        data: wData,
+        borderColor:'#C9A227',
+        backgroundColor:'rgba(201,162,39,0.1)',
+        tension:0.4, fill:true, pointRadius:4, pointHoverRadius:7,
+        pointBackgroundColor:'#C9A227'
+      },{
+        label:'Цель (21ч/нед)',
+        data: wLabels.map(()=>21),
+        borderColor:'rgba(92,138,102,0.5)',
+        borderDash:[6,4], pointRadius:0, fill:false
+      }]
+    },
+    options:{responsive:true,plugins:{legend:{labels:{color:'#A9A08C',font:{size:11}}}},scales:{x:{ticks:{maxTicksLimit:12}},y:{beginAtZero:true,title:{display:true,text:'Часов'}}}}
+  });
+
+  // Type chart — use all weeks with data
+  const typeWeeks = weeks.filter(w=>w.hours>0);
+  if(typeChart) typeChart.destroy();
+  const ctxT = document.getElementById('canvasType');
+  if(ctxT) typeChart = new Chart(ctxT, {
+    type:'bar',
+    data:{
+      labels: typeWeeks.map(w=>`Нед ${w.week}`),
+      datasets:[
+        {label:'Тактика',  data:typeWeeks.map(w=>+w.tactics.toFixed(1)),  backgroundColor:'#C9A227'},
+        {label:'Дебют',    data:typeWeeks.map(w=>+w.opening.toFixed(1)),   backgroundColor:'#46684F'},
+        {label:'Партии',   data:typeWeeks.map(w=>+w.games.toFixed(1)),     backgroundColor:'#4FB35F'},
+        {label:'Эндшпиль', data:typeWeeks.map(w=>+w.endgame.toFixed(1)),   backgroundColor:'#7A4B2B'},
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{labels:{color:'#A9A08C',font:{size:11}}}},scales:{x:{stacked:true,ticks:{maxTicksLimit:12}},y:{stacked:true,beginAtZero:true,title:{display:true,text:'Часов'}}}}
+  });
+
+  // Forecast line chart
+  const ctxF = document.getElementById('canvasForecast');
+  if(ctxF){
+    const projLabels=[], projActual=[], projForecast=[], projGoal=[];
+    const totalWeeks = 52;
+    for(let w=0;w<totalWeeks;w++){
+      projLabels.push(`Нед ${w+1}`);
+      const actual = weeks[w]?.hours||null;
+      projActual.push(w<=Math.floor(daysElapsed/7) ? (weeks[w]?.hours||0) : null);
+      projForecast.push(w>=Math.floor(daysElapsed/7) ? +(hoursPerWeek).toFixed(1) : null);
+      projGoal.push(21);
+    }
+    new Chart(ctxF,{
+      type:'line',
+      data:{labels:projLabels,datasets:[
+        {label:'Факт',     data:projActual,   borderColor:'#C9A227', tension:0.3, pointRadius:2, fill:false},
+        {label:'Прогноз',  data:projForecast, borderColor:'rgba(201,162,39,0.4)', borderDash:[6,4], tension:0, pointRadius:0, fill:false},
+        {label:'Цель',     data:projGoal,     borderColor:'rgba(92,138,102,0.4)', borderDash:[4,4], pointRadius:0, fill:false},
+      ]},
+      options:{responsive:true,plugins:{legend:{labels:{color:'#A9A08C',font:{size:11}}}},scales:{x:{ticks:{maxTicksLimit:13}},y:{beginAtZero:true,title:{display:true,text:'Часов/нед'}}}}
+    });
+  }
+}
+
+function switchChart(tab){
+  currentChartTab = tab;
+  buildCharts();
+}
+
+// ─── AI COACH ─────────────────────────────────────────────────────────────────
+async function showAICoach(){
+  const stats = computeStats();
+  const weeks = computeWeeklyData();
+  const recentWeeks = weeks.filter(w=>w.hours>0).slice(-4);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ai-coach-popup';
+  overlay.innerHTML = `<div class="ai-coach-card" style="position:relative;">
+    <button class="ai-coach-close" onclick="this.closest('.ai-coach-popup').remove()">✕</button>
+    <h3>♟ Тренер говорит:</h3>
+    <div class="coach-loading" id="coachText">Анализирую твои данные…</div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if(e.target===overlay) overlay.remove(); });
+
+  const prompt = `Ты личный шахматный тренер. Анализируй данные игрока и дай чёткий, мотивирующий совет на сегодня (2-3 абзаца).
+
+Данные игрока:
+- Всего часов: ${stats.totalHours.toFixed(1)} из 1100 (цель — CM звание)
+- Текущая серия: ${stats.currentStreak} дней
+- Лучшая серия: ${stats.bestStreak} дней
+- Партий сыграно: ${stats.games}
+- Активных дней: ${stats.activeDays}
+- Последние 4 недели (часов): ${recentWeeks.map(w=>w.hours.toFixed(1)).join(', ')}
+- Структура последних недель: тактика/дебют/партии/эндшпиль
+
+Дай конкретный, личный совет: что хорошо, что западает, что делать СЕГОДНЯ. Говори как строгий но добрый тренер. На русском.`;
+
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await resp.json();
+    const text = data.content?.map(c=>c.text||'').join('') || 'Нет ответа.';
+    const el = document.getElementById('coachText');
+    if(el){ el.className='coach-text'; el.textContent=text; }
+  }catch(e){
+    const el = document.getElementById('coachText');
+    if(el){ el.className='coach-text'; el.textContent='Не удалось подключиться к тренеру. Проверь интернет.'; }
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render(){
+  const stats = computeStats();
+  const START = parseDate(state.startDate);
+  const END   = addDays(START, TOTAL_DAYS-1);
+  const pct   = Math.min(100,(stats.totalHours/GOAL_HOURS)*100);
+  const remaining = Math.max(0, GOAL_HOURS-stats.totalHours);
+  const isConnected = sbReady;
+  const lvl   = levelInfo(state.xp);
+  const rank  = getRank(lvl.level);
+  const combo = comboMultiplier(stats.currentStreak);
+  const xpPct = Math.min(100, (lvl.into/lvl.span)*100);
+  const todayStr  = fmt(startOfDay(new Date()));
+  const todayDone = dayComplete(state.days[todayStr]);
+  const hourNow   = new Date().getHours();
+  const showRisk  = stats.currentStreak>0 && !todayDone && hourNow>=18;
+  const challenge = getDailyChallenge();
+  const challengeDoneToday = state.challengeDoneDate === todayStr;
+  const boss = getBossHP();
+
+  // Check shield earn
+  checkShieldEarn(stats);
+
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="install-banner" id="installBanner">
+      <span>📱 Установи как приложение на телефон!</span>
+      <button onclick="installPWA()">Установить</button>
+      <button onclick="this.closest('.install-banner').classList.remove('show')" style="background:none;border:none;color:var(--ivory-dim);cursor:pointer;">✕</button>
+    </div>
+
+    <header>
+      <div class="eyebrow">план на 365 дней</div>
+      <h1>Шахматный год</h1>
+      <p>${fmtRu(START)} — ${fmtRu(END)} · цель — ${GOAL_HOURS} часов · CM</p>
+      <div class="badge-row">
+        <span class="badge ${isConnected?'cloud':'local'}">${isConnected ? '☁ Облако' : (sbLastError ? '⚠ Локально' : '◆ Локально')}</span>
+        <button class="toolbtn ${state.pushEnabled?'active':''}" id="pushBtn" onclick="requestPushPermission()">
+          ${state.pushEnabled ? '🔔 Пуши вкл' : '🔕 Включить пуши'}
+        </button>
+        <button class="toolbtn" onclick="showAICoach()">🧠 Совет тренера</button>
+        <button class="toolbtn" id="exportBtn">скачать копию</button>
+        <button class="toolbtn" id="importBtn">восстановить</button>
+        <button class="toolbtn mute-btn" id="muteBtn">${state.soundOn?'🔊':'🔇'}</button>
+        <button class="toolbtn" id="resetLvlBtn">↺ сброс XP</button>
+      </div>
+      <div class="levelhud">
+        <div class="rank-icon">${rank.icon}</div>
+        <div class="lvl-main">
+          <div class="lvl-top"><span>${rank.title} · Уровень <b>${lvl.level}</b></span><span><b>${lvl.into}</b> / ${lvl.span} XP</span></div>
+          <div class="xptrack"><div class="xpfill" style="width:${xpPct}%"></div></div>
+        </div>
+        <div class="combo-pill">🔥 ×${combo.toFixed(2)}</div>
+        <div class="shield-pill" onclick="useShield()" title="Нажми чтобы активировать щит (сохраняет серию при пропуске дня)">🛡 ${state.shields||0}</div>
+      </div>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Часов набрано</div><div class="value">${stats.totalHours.toFixed(1)} <small>/ ${GOAL_HOURS}</small></div></div>
+      <div class="stat"><div class="label">Серия сейчас</div><div class="value">${stats.currentStreak} <small>дн.</small></div></div>
+      <div class="stat"><div class="label">Лучшая серия</div><div class="value">${stats.bestStreak} <small>дн.</small></div></div>
+      <div class="stat"><div class="label">Партий сыграно</div><div class="value">${stats.games}</div></div>
+    </div>
+
+    <div class="goalbar">
+      <div class="row"><span>Прогресс к CM</span><b>${pct.toFixed(1)}% · осталось ${remaining.toFixed(0)} ч</b></div>
+      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+    </div>
+
+    ${showRisk ? `<div class="risk-banner"><span class="flame">🔥${stats.currentStreak}</span><div>Серия из <b>${stats.currentStreak} дней</b> ещё не подтверждена — отметь план дня!</div></div>` : ''}
+
+    <!-- DAILY CHALLENGE -->
+    <section>
+      <div class="sec-title"><span class="icon">🎯</span><h2>Вызов дня</h2></div>
+      <div class="daily-challenge">
+        <div class="dc-icon">${challenge.icon}</div>
+        <div class="dc-body">
+          <div class="dc-label">Ежедневный вызов</div>
+          <div class="dc-text">${challenge.text}</div>
+          <div class="dc-bonus">Бонус: ×${challenge.bonus} XP на весь день</div>
+        </div>
+        <button class="dc-done-btn" ${challengeDoneToday?'disabled':''} onclick="completeChallenge()">
+          ${challengeDoneToday ? '✅ Выполнено' : 'Выполнил!'}
+        </button>
+      </div>
+    </section>
+
+    <!-- BOSS FIGHT -->
+    <section>
+      <div class="sec-title"><span class="icon">⚔</span><h2>Еженедельный босс</h2></div>
+      <div class="boss-section">
+        ${boss.hp > 0 ? `
+        <div class="boss-header">
+          <div class="boss-avatar">${boss.boss.icon}</div>
+          <div class="boss-info">
+            <h3>${boss.boss.name}</h3>
+            <div class="boss-rating">РЕЙТИНГ ${boss.boss.rating} · ${boss.boss.flavor}</div>
+          </div>
+        </div>
+        <div class="boss-hp-label"><span>HP Босса</span><span>${boss.hp} / ${boss.maxHP}</span></div>
+        <div class="boss-hp-track"><div class="boss-hp-fill" style="width:${boss.pct}%"></div></div>
+        <div class="boss-status">Выполни ${boss.hp} полных дней недели чтобы победить! (Выполнено: ${boss.completedThisWeek}/7)</div>
+        ` : `
+        <div class="boss-dead">
+          <div style="font-size:48px;">🏆</div>
+          <h3 style="color:var(--gold);margin:8px 0;">Босс повержен!</h3>
+          <div style="color:var(--ivory-dim);font-size:13px;">${boss.boss.name} (${boss.boss.rating}) — ты его уничтожил на этой неделе. Новый босс придёт в понедельник!</div>
+        </div>
+        `}
+      </div>
+    </section>
+
+    <!-- ACHIEVEMENTS -->
+    <section>
+      <div class="sec-title"><span class="icon">🏆</span><h2>Ачивки</h2></div>
+      <div class="achv-row">${ACHIEVEMENTS.map(a=>{const ok=a.check(stats);return `<div class="achv ${ok?'unlocked':''}" data-id="${a.id}"><span class="glyph">${a.glyph}</span><div class="name">${a.name}</div><div class="desc">${a.desc}</div></div>`;}).join('')}</div>
+    </section>
+
+    <!-- CALENDAR -->
+    <section>
+      <div class="sec-title"><span class="icon">▦</span><h2>Календарь года</h2></div>
+      <div class="heatwrap"><div class="heatgrid" id="heatgrid"></div></div>
+      <div class="legend">
+        <span class="swatch"><span class="cell" style="background:var(--empty)"></span>0ч</span>
+        <span class="swatch"><span class="cell" style="background:var(--wood-dim)"></span>&lt;1.5ч</span>
+        <span class="swatch"><span class="cell" style="background:var(--wood)"></span>1.5–3ч</span>
+        <span class="swatch"><span class="cell" style="background:var(--felt)"></span>3–4.2ч</span>
+        <span class="swatch"><span class="cell" style="background:var(--felt-bright)"></span>4.2–5.5ч</span>
+        <span class="swatch"><span class="cell" style="background:var(--emerald)"></span>5.5ч+</span>
+      </div>
+    </section>
+
+    <!-- CHESS BOARD PROGRESS -->
+    <section>
+      <div class="sec-title"><span class="icon">♟</span><h2>Доска прогресса (52 недели)</h2></div>
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+        <div class="board-progress" id="boardProgress"></div>
+        <div style="font-size:11px;color:var(--ivory-dim);line-height:1.8;margin-top:4px;">
+          <div>⬜ нет данных</div>
+          <div style="color:var(--wood-dim)">♟ &lt;10ч/нед</div>
+          <div style="color:var(--felt)">♞ 10–15ч/нед</div>
+          <div style="color:var(--felt-bright)">♝ 15–20ч/нед</div>
+          <div style="color:var(--gold)">♛ 20+ ч/нед (цель!)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHARTS -->
+    <section>
+      <div class="sec-title"><span class="icon">📊</span><h2>Аналитика и прогноз</h2></div>
+      <div class="chart-container" id="chartsContainer"></div>
+    </section>
+
+    <!-- EDITOR -->
+    <section>
+      <div class="sec-title"><span class="icon">✎</span><h2>Дневник тренировки</h2></div>
+      <div class="editor" id="editor"></div>
+    </section>
+  `;
+
+  document.getElementById('exportBtn').onclick = exportBackup;
+  document.getElementById('importBtn').onclick = ()=>document.getElementById('importInput').click();
+  document.getElementById('importInput').onchange = importBackup;
+  document.getElementById('muteBtn').onclick = ()=>{ state.soundOn=!state.soundOn; persist(); render(); };
+  document.getElementById('resetLvlBtn').onclick = async ()=>{
+    if(!confirm('Сбросить весь XP?')) return;
+    state.xp=0; await persist(); render();
+  };
+
+  buildHeatgrid();
+  buildEditor();
+  buildBoardProgress();
+  buildCharts();
+  syncUnlocked(stats, false);
+  scheduleDailyNotifications();
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────────────────────
+function buildHeatgrid(){
+  const START  = parseDate(state.startDate);
+  const grid   = document.getElementById('heatgrid');
+  const today  = startOfDay(new Date());
+  const firstWd= (START.getDay()+6)%7;
+  let html = '';
+  for(let i=0;i<firstWd;i++) html += `<div></div>`;
+  for(let i=0;i<TOTAL_DAYS;i++){
+    const d  = addDays(START,i);
+    const ds = fmt(d);
+    const col= Math.floor((i+firstWd)/7);
+    const wd = (d.getDay()+6)%7;
+    if(wd===0 && d.getDate()<=7){ html += `<div class="mlabel" style="grid-column:${col+1}">${MONTHS_RU[d.getMonth()]}</div>`; }
+    const mins    = dayMinutes(state.days[ds]);
+    const isFuture= d>today;
+    const isToday = ds===fmt(today);
+    html += `<div class="cell ${isFuture?'future':''} ${isToday?'today':''}" style="grid-row:${wd+2};grid-column:${col+1};background:${colorForMinutes(mins)}" data-date="${ds}" data-mins="${mins}"></div>`;
+  }
+  grid.innerHTML = html;
+  const tip = document.getElementById('calTooltip');
+  grid.querySelectorAll('.cell[data-date]').forEach(c=>{
+    c.addEventListener('mouseenter', e=>{
+      const d=parseDate(c.dataset.date), mins=parseInt(c.dataset.mins)||0;
+      const dayD=state.days[c.dataset.date];
+      let detail='';
+      if(dayD){ const parts=[]; if(dayD.tactics&&dayD.tactics.min>0) parts.push(`♟ ${dayD.tactics.min}м`); if(dayD.opening&&dayD.opening.min>0) parts.push(`♞ ${dayD.opening.min}м`); if(dayD.games&&dayD.games.count>0) parts.push(`♜ ${dayD.games.count}шт`); if(parts.length) detail='<br><span style="color:var(--ivory-dim)">'+parts.join(' · ')+'</span>'; }
+      tip.innerHTML=`<b>${fmtRu(d)}</b> · ${mins} мин (${fmtHours(mins)} ч)${detail}`; tip.style.opacity='1'; moveTip(e);
+    });
+    c.addEventListener('mousemove', moveTip);
+    c.addEventListener('mouseleave', ()=>{ tip.style.opacity='0'; });
+    if(!c.classList.contains('future')) c.addEventListener('click',()=>openDayPopup(c.dataset.date));
+  });
+}
+function moveTip(e){ const tip=document.getElementById('calTooltip'); let x=e.clientX+14,y=e.clientY-36; if(x+240>window.innerWidth) x=e.clientX-250; if(y<8) y=e.clientY+20; tip.style.left=x+'px'; tip.style.top=y+'px'; }
+
+// ─── BOARD PROGRESS ───────────────────────────────────────────────────────────
+function buildBoardProgress(){
+  const weeks = computeWeeklyData();
+  const START = parseDate(state.startDate);
+  const now = new Date();
+  const currentWeek = Math.floor((now - parseDate(state.startDate)) / (86400000*7));
+  const board = document.getElementById('boardProgress');
+  if(!board) return;
+  let html='';
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const w = r*8+c;
+      const isLight = (r+c)%2===0;
+      const weekData = weeks[w];
+      const isCurrent = w===currentWeek;
+      let cls='board-cell '+(isLight?'light-sq':'dark-sq');
+      let piece='';
+      if(weekData && weekData.hours>0){
+        if(weekData.hours>=20){ cls+=' filled-epic'; piece='♛'; }
+        else if(weekData.hours>=15){ cls+=' filled-great'; piece='♝'; }
+        else if(weekData.hours>=10){ cls+=' filled-mid'; piece='♞'; }
+        else { cls+=' filled-base'; piece='♟'; }
+      }
+      if(isCurrent) cls+=' current-week';
+      html+=`<div class="${cls}" data-week="${w+1}" data-hours="${weekData?weekData.hours.toFixed(1):0}">${piece}</div>`;
+    }
+  }
+  board.innerHTML=html;
+  const btip=document.getElementById('boardTooltip');
+  board.querySelectorAll('.board-cell').forEach(c=>{
+    c.addEventListener('mouseenter',e=>{
+      const w=c.dataset.week, h=c.dataset.hours;
+      btip.textContent=`Неделя ${w}: ${h} ч`;
+      btip.style.opacity='1';
+      btip.style.left=(e.clientX+12)+'px'; btip.style.top=(e.clientY-30)+'px';
+    });
+    c.addEventListener('mousemove',e=>{ btip.style.left=(e.clientX+12)+'px'; btip.style.top=(e.clientY-30)+'px'; });
+    c.addEventListener('mouseleave',()=>{ btip.style.opacity='0'; });
+  });
+}
+
+// ─── DAY POPUP ───────────────────────────────────────────────────────────────
+function openDayPopup(ds){
+  const d=parseDate(ds), dayD=state.days[ds]||emptyDay(), mins=dayMinutes(dayD);
+  const rows=PLAN.map(p=>{ if(p.type==='check'){ const f=dayD[p.key]; if(!f||(!f.done&&!f.min)) return ''; return `<div class="popup-row"><span class="lbl">${p.glyph} ${p.name}</span><span class="val">${f.done?'✓':''} ${f.min||0} мин</span></div>`; }else{ const f=dayD[p.key]; if(!f||!f.count) return ''; return `<div class="popup-row"><span class="lbl">${p.glyph} ${p.name}</span><span class="val">${f.count} шт · ${f.count*20} мин</span></div>`; } }).filter(Boolean).join('');
+  const overlay=document.createElement('div'); overlay.className='day-popup-overlay';
+  overlay.innerHTML=`<div class="day-popup"><h3>${fmtRu(d)}</h3><div class="popup-sub">${WD_RU[(d.getDay()+6)%7]} · ${dayComplete(dayD)?'✅ день засчитан':'⬜ не засчитан'}</div>${rows||'<div style="color:var(--ivory-dim);font-size:13px;padding:10px 0">нет записей</div>'}<div class="popup-total"><span>Итого</span><span class="val">${mins} мин · ${fmtHours(mins)} ч</span></div><div class="popup-btns"><button class="popup-edit" id="popupEdit">✎ редактировать</button><button class="popup-close" id="popupClose">закрыть</button></div></div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#popupClose').onclick=()=>overlay.remove();
+  overlay.querySelector('#popupEdit').onclick=()=>{ overlay.remove(); selectedDate=ds; buildEditor(); document.getElementById('editor').scrollIntoView({behavior:'smooth',block:'center'}); };
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+}
+
+// ─── EDITOR ──────────────────────────────────────────────────────────────────
+function buildEditor(){
+  const ed=document.getElementById('editor');
+  const d=state.days[selectedDate]||emptyDay();
+  const dateObj=parseDate(selectedDate);
+  const total=dayMinutes(d);
+  const todayStr=fmt(startOfDay(new Date()));
+  ed.innerHTML=`<div class="editor-head"><h3>${fmtRu(dateObj)} <span style="color:var(--ivory-dim);font-size:13px;">· ${WD_RU[(dateObj.getDay()+6)%7]}</span></h3><div class="nav-btns"><button id="prevDay">← пред.</button><button id="todayBtn">сегодня</button><button id="nextDay">след. →</button></div></div>${PLAN.map(p=>renderTask(p,d)).join('')}<div class="daytotal"><span style="color:var(--ivory-dim);font-size:13px;">Итого за день</span><span class="num" id="dayTotal">${total} мин · ${fmtHours(total)} ч</span><span class="savemsg" id="saveMsg">сохранено</span></div>`;
+  document.getElementById('prevDay').onclick=()=>{ selectedDate=fmt(addDays(parseDate(selectedDate),-1)); buildEditor(); };
+  document.getElementById('nextDay').onclick=()=>{ selectedDate=fmt(addDays(parseDate(selectedDate),1)); buildEditor(); };
+  document.getElementById('todayBtn').onclick=()=>{ selectedDate=todayStr; buildEditor(); };
+  PLAN.forEach(p=>{
+    if(p.type==='check'){ const chk=ed.querySelector(`#chk-${p.key}`), inp=ed.querySelector(`#min-${p.key}`); chk.addEventListener('change',()=>updateField(p.key,'done',chk.checked,chk)); inp.addEventListener('change',()=>updateField(p.key,'min',clampNum(inp.value,0,300),inp)); }
+    else{ const chk=ed.querySelector(`#chk-${p.key}`), inp=ed.querySelector(`#cnt-${p.key}`); if(chk) chk.addEventListener('change',()=>updateField(p.key,'done',chk.checked,chk)); inp.addEventListener('change',()=>updateField(p.key,'count',clampNum(inp.value,0,20),inp)); }
+  });
+}
+function clampNum(v,min,max){ let n=parseInt(v,10); if(isNaN(n)) n=0; return Math.max(min,Math.min(max,n)); }
+function renderTask(p,d){
+  if(p.type==='check'){ const f=d[p.key]; return `<div class="task"><input type="checkbox" class="chk" id="chk-${p.key}" ${f.done?'checked':''}><div class="info"><b>${p.glyph} ${p.name}</b><span>${p.hint}</span></div><div><input type="number" id="min-${p.key}" min="0" max="300" value="${f.min}"><span class="unit">мин</span></div></div>`; }
+  else{ const f=d[p.key]; const cnt=f.count||0; return `<div class="task"><input type="checkbox" class="chk" id="chk-${p.key}" ${f.done?'checked':''}><div class="info"><b>${p.glyph} ${p.name}</b><span>${p.hint} · ≈ ${cnt*20} мин</span></div><div><input type="number" id="cnt-${p.key}" min="0" max="20" value="${cnt}"><span class="unit">шт.</span></div></div>`; }
+}
+
+// ─── DAILY CHALLENGE COMPLETE ─────────────────────────────────────────────────
+async function completeChallenge(){
+  const todayStr = fmt(startOfDay(new Date()));
+  if(state.challengeDoneDate === todayStr) return;
+  const challenge = getDailyChallenge();
+  state.challengeDoneDate = todayStr;
+  // Apply bonus XP
+  const bonus = Math.round(200 * challenge.bonus);
+  state.xp += bonus;
+  await persist();
+  spawnFloatingXP(document.querySelector('.dc-done-btn'), `+${bonus} XP 🎯`, 'crit');
+  spawnConfetti(document.querySelector('.dc-done-btn'), 30, true);
+  playComplete();
+  showToast({glyph:'🎯', name:'Вызов выполнен!', desc:`+${bonus} XP бонус за ежедневный вызов!`});
+  document.querySelector('.dc-done-btn').disabled = true;
+  document.querySelector('.dc-done-btn').textContent = '✅ Выполнено';
+  refreshTopStats();
+}
+
+// ─── UPDATE FIELD ─────────────────────────────────────────────────────────────
+async function updateField(key,field,value,el){
+  if(!state.days[selectedDate]) state.days[selectedDate]=emptyDay();
+  const day=state.days[selectedDate];
+  const oldTotal=dayMinutes(day), oldComplete=dayComplete(day);
+  const previousBest=state.bestDayMinutes||0;
+  const statsBefore=computeStats(), combo=comboMultiplier(statsBefore.currentStreak);
+  const oldLevel=levelInfo(state.xp).level;
+
+  // Phoenix check: was previously zero/abandoned
+  const wasAbandoned = oldTotal===0 && statsBefore.currentStreak===0;
+
+  day[key][field]=value;
+  const newTotal=dayMinutes(day), newComplete=dayComplete(day);
+
+  let gained=Math.max(0,newTotal-oldTotal)*combo;
+  if(field==='done'&&value===true) gained+=15*combo;
+  let crit=false;
+  if(gained>0&&Math.random()<0.15){ crit=true; gained+=Math.round(gained*0.5)+5; }
+
+  // Challenge day bonus
+  const todayStr=fmt(startOfDay(new Date()));
+  const challengeActive = state.challengeDoneDate===todayStr;
+  const challenge=getDailyChallenge();
+  if(challengeActive&&gained>0) gained=Math.round(gained*challenge.bonus);
+
+  let dayBonus=false;
+  if(newComplete&&!oldComplete){ gained+=Math.round(50*combo); dayBonus=true; }
+  gained=Math.round(gained);
+  if(gained>0) state.xp+=gained;
+
+  const isRecord=newTotal>previousBest;
+  if(isRecord) state.bestDayMinutes=newTotal;
+
+  const newLevel=levelInfo(state.xp).level;
+  const ok=await persist();
+
+  if(gained>0){ spawnFloatingXP(el,`+${gained} XP${crit?' 🎲':''}`,crit?'crit':''); spawnConfetti(el,crit?22:12,crit); crit?playCrit():playDing(); }
+  if(dayBonus){
+    showToast({glyph:'✅',name:'День завершён!',desc:`Бонус +${Math.round(50*combo)} XP за весь план`});
+    playComplete();
+    setTimeout(showBreakthroughPiece, 400);
+  }
+  if(isRecord&&newTotal>0&&newTotal>oldTotal) showToast({glyph:'🏅',name:'Новый рекорд дня',desc:`${fmtHours(newTotal)} ч за один день`});
+  if(newLevel>oldLevel){ showLevelUp(newLevel); sendLevelUpNotification(newLevel); }
+
+  // Phoenix: returning after streak break
+  if(wasAbandoned && newTotal>0){ setTimeout(()=>{ showPhoenixFlash(); showToast({glyph:'🔥',name:'Ты вернулся!',desc:'+50 XP бонус за возвращение 🦅'}); state.xp+=50; persist(); }, 600); }
+
+  // Boss kill check
+  const newBoss=getBossHP();
+  if(newBoss.hp===0&&dayBonus){
+    setTimeout(()=>{ showToast({glyph:'⚔',name:`Босс повержен: ${newBoss.boss.name}!`,desc:`Рейтинг ${newBoss.boss.rating} — ты сильнее!`}); playBossKill(); spawnConfetti(null,60,true); }, 1000);
+  }
+
+  document.getElementById('dayTotal').textContent=`${newTotal} мин · ${fmtHours(newTotal)} ч`;
+  if(key==='games'&&field==='count'){ const infoEl=document.querySelector(`#cnt-games`)?.closest('.task')?.querySelector('.info span'); if(infoEl) infoEl.textContent=`${PLAN.find(p=>p.key==='games').hint.split('·')[0]}· ≈ ${value*20} мин`; }
+  const msg=document.getElementById('saveMsg');
+  msg.classList.remove('err'); msg.textContent=ok?'сохранено':'ошибка'; if(!ok) msg.classList.add('err');
+  msg.classList.add('show'); setTimeout(()=>msg.classList.remove('show'),1400);
+  const cell=document.querySelector(`.cell[data-date="${selectedDate}"]`);
+  if(cell){ cell.style.background=colorForMinutes(newTotal); cell.dataset.mins=newTotal; }
+  refreshTopStats();
+}
+
+function refreshTopStats(){
+  const stats=computeStats(), pct=Math.min(100,(stats.totalHours/GOAL_HOURS)*100), remaining=Math.max(0,GOAL_HOURS-stats.totalHours);
+  const vals=document.querySelectorAll('.stat .value');
+  if(vals.length>=4){ vals[0].innerHTML=`${stats.totalHours.toFixed(1)} <small>/ ${GOAL_HOURS}</small>`; vals[1].innerHTML=`${stats.currentStreak} <small>дн.</small>`; vals[2].innerHTML=`${stats.bestStreak} <small>дн.</small>`; vals[3].textContent=stats.games; }
+  const fill=document.querySelector('.fill'); if(fill) fill.style.width=pct+'%';
+  const row=document.querySelector('.goalbar .row b'); if(row) row.textContent=`${pct.toFixed(1)}% · осталось ${remaining.toFixed(0)} ч`;
+  document.querySelectorAll('.achv').forEach(el=>{ const a=ACHIEVEMENTS.find(x=>x.id===el.dataset.id); el.classList.toggle('unlocked',a.check(stats)); });
+  const lvl=levelInfo(state.xp), rank=getRank(lvl.level), combo=comboMultiplier(stats.currentStreak), xpPct=Math.min(100,(lvl.into/lvl.span)*100);
+  const hud=document.querySelector('.levelhud');
+  if(hud){ hud.querySelector('.rank-icon').textContent=rank.icon; hud.querySelector('.lvl-top').innerHTML=`<span>${rank.title} · Уровень <b>${lvl.level}</b></span><span><b>${lvl.into}</b> / ${lvl.span} XP</span>`; hud.querySelector('.xpfill').style.width=xpPct+'%'; hud.querySelector('.combo-pill').textContent=`🔥 ×${combo.toFixed(2)}`; hud.querySelector('.shield-pill').textContent=`🛡 ${state.shields||0}`; }
+  syncUnlocked(stats,true);
+  // Update boss HP fill
+  const boss=getBossHP();
+  const bFill=document.querySelector('.boss-hp-fill');
+  if(bFill) bFill.style.width=boss.pct+'%';
+}
+
+async function syncUnlocked(stats,announce){
+  const newlyUnlocked=[];
+  ACHIEVEMENTS.forEach(a=>{ if(a.check(stats)&&!state.unlocked.includes(a.id)){ state.unlocked.push(a); newlyUnlocked.push(a); } });
+  if(newlyUnlocked.length){ await persist(); if(announce) showToast(newlyUnlocked[0]); }
+}
+
+let toastTimer=null;
+function showToast(a){
+  const t=document.getElementById('toast');
+  t.innerHTML=`<span class="glyph">${a.glyph}</span><div><b>${a.name}</b><span>${a.desc||''}</span></div>`;
+  t.classList.add('show'); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),4000);
+}
+
+function exportBackup(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=`chess-backup-${fmt(new Date())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function importBackup(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=async ev=>{ try{ const parsed=JSON.parse(ev.target.result); if(!parsed.startDate||!parsed.days) throw new Error('bad'); state=parsed; state.unlocked=state.unlocked||[]; await persist(); render(); }catch{ alert('Не удалось прочитать резервную копию.'); } };
+  reader.readAsText(file); e.target.value='';
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(async function init(){
+  await loadState();
+  selectedDate=fmt(startOfDay(new Date()));
+  render();
+})();
+</script>
+</body>
+</html>
